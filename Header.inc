@@ -1,9 +1,16 @@
-;==LoRom==      ; We'll get to HiRom some other time.
+;------------------------------ Header File ---------------------------------
+;   This is basically a combo of MarctheMER's and Neviksti's header files
+; Perhaps reading their's will also help your understanding of the header,
+; but I believe this will be the simplest method of defining your header,
+; as Marc's doesn't provide a full explanation, and Neviksti's can be
+; a bit more difficult for beginners (using the WLA directives is easier).
+;----------------------------------------------------------------------------
 
+;==LoRom==      ; We'll get to HiRom some other time.
 .MEMORYMAP                      ; Begin describing the system architecture.
   SLOTSIZE $8000                ; The slot is $8000 bytes in size. More details on slots later.
-  DEFAULTSLOT 0
-  SLOT 0 $8000                  ; Defines Slot 0's starting address.
+  DEFAULTSLOT 0                 ; There's only 1 slot in SNES, there are more in other consoles.
+  SLOT 0 $8000                  ; Define's Slot 0's starting address.
 .ENDME          ; End MemoryMap definition
 
 .ROMBANKSIZE $8000              ; Every ROM bank is 32 KBytes in size
@@ -21,7 +28,7 @@
   CARTRIDGETYPE $00             ; $00 = ROM only, see WLA documentation for others
   ROMSIZE $08                   ; $08 = 2 Mbits,  see WLA doc for more..
   SRAMSIZE $00                  ; No SRAM         see WLA doc for more..
-  COUNTRY $01                   ; $01 = U.S.  $00 = Japan  $02 = Australia, Europe, Oceania and Asia  $03 = Sweden  $04 = Finland  $05 = Denmark  $06 = France  $07 = Holland  $08 = Spain  $09 = Germany, Austria and Switzerland  $0A = Italy  $0B = Hong Kong and China  $0C = Indonesia  $0D = Korea
+  COUNTRY $01                   ; $01 = U.S.  $00 = Japan, that's all I know
   LICENSEECODE $00              ; Just use $00
   VERSION $00                   ; $00 = 1.00, $01 = 1.01, etc.
 .ENDSNES
@@ -30,7 +37,7 @@
   COP EmptyHandler
   BRK EmptyHandler
   ABORT EmptyHandler
-  NMI VBlank
+  NMI EmptyHandler
   IRQ EmptyHandler
 .ENDNATIVEVECTOR
 
@@ -38,7 +45,7 @@
   COP EmptyHandler
   ABORT EmptyHandler
   NMI EmptyHandler
-  RESET Start                   ; where execution starts
+  RESET Start
   IRQBRK EmptyHandler
 .ENDEMUVECTOR
 
@@ -47,9 +54,8 @@
 .SECTION "EmptyVectors" SEMIFREE
 
 EmptyHandler:
-       rti
+        rti
 
 .ENDS
 
-.EMPTYFILL $00                  ; fill unused areas with $00, opcode for BRK.
-                                ; BRK will crash the snes if executed.
+.EMPTYFILL $00
