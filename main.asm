@@ -68,7 +68,18 @@ Start:
 
   lda #$80
   sta $2115
+
   ldx #$0400
+  stx $2116
+  lda #$02
+  sta $2118
+
+  ldx #$0510
+  stx $2116
+  lda #$03
+  sta $2118
+
+  ldx #$0620
   stx $2116
   lda #$01
   sta $2118
