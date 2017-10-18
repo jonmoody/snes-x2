@@ -62,9 +62,9 @@ VBlank:
 Start:
   InitSNES
 
-  LoadPalette BG_Palette, 0, 4
+  LoadPalette BG_Palette, 0, 16
 
-  LoadBlockToVRAM Tiles, $0000, $0040	; 2 tiles, 2bpp, = 32 bytes
+  LoadBlockToVRAM Tiles, $0000, $0080	; 4 tiles, 4bpp, = 128 bytes
 
   lda #$80
   sta $2115
@@ -81,7 +81,7 @@ EternalTorment:
 
 
 SetupVideo:
-  lda #$00
+  lda #$01
   sta $2105           ; Set Video mode 0, 8x8 tiles, 4 color BG1/BG2/BG3/BG4
 
   lda #$04            ; Set BG1's Tile Map offset to $0400 (Word address)
