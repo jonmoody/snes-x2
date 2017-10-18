@@ -19,14 +19,14 @@
 ; Modifies: A,X
 ; Requires: mem/A = 8 bit, X/Y = 16 bit
 ;----------------------------------------------------------------------------
-.MACRO LoadPalette
+.macro LoadPalette
   lda #\2
   sta $2121       ; Start at START color
   lda #:\1        ; Using : before the parameter gets its bank.
   ldx #\1         ; Not using : gets the offset address.
   ldy #(\3 * 2)   ; 2 bytes for every color
   jsr DMAPalette
-.ENDM
+.endm
 
 ;============================================================================
 ; LoadBlockToVRAM -- Macro that simplifies calling LoadVRAM to copy data to VRAM
@@ -42,18 +42,18 @@
 
 ;LoadBlockToVRAM SRC_ADDRESS, DEST, SIZE
 ;   requires:  mem/A = 8 bit, X/Y = 16 bit
-.MACRO LoadBlockToVRAM
+.macro LoadBlockToVRAM
   ldx #\2         ; DEST
   stx $2116       ; $2116: Word address for accessing VRAM.
   lda #:\1        ; SRCBANK
   ldx #\1         ; SRCOFFSET
   ldy #\3         ; SIZE
   jsr LoadVRAM
-.ENDM
+.endm
 
 ; Needed to satisfy interrupt definition in "Header.inc".
 VBlank:
-  RTI
+  rti
 
 .bank 0 slot 0
 .org 0
