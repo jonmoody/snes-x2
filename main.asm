@@ -10,9 +10,20 @@
 Start:
   InitSNES
 
-  LoadPalette BG_Palette, 0, 16
+  LoadPalette SpritePalette, 128, 16
+  LoadBlockToVRAM Sprite, $0000, $0800
 
-  LoadBlockToVRAM Tiles, $0000, $0080	; 4 tiles, 4bpp, = 128 bytes
+  jsr SpriteInit
+
+  lda #(256/2 - 16)
+  sta $0000           ; Sprite X-Coordinate
+
+  lda #(224/2 - 16)   ; Sprite Y-Coordinate
+  sta $0001
+
+  lda #%01010100  ; clear X-MSB
+  sta $0200
+
 
   lda #$80
   sta $2115
@@ -42,25 +53,62 @@ VBlank:
   rti
 
 SetupVideo:
+  rep #$10
+  sep #$20            ; 8bit A, 16bit X/Y
+
+  ; DMA sprite data
+  stz $2102
+  stz $2103           ; Set OAM address to 0
+
+  ldy #$0400          ; Writes #$00 to $4300, #$04 to $4301
+  sty $4300           ; CPU -> PPU, auto inc, $2104 (OAM write)
+  stz $4302
+  stz $4303
+  lda #$7E
+  sta $4304           ; CPU address 7E:0000 - Work RAM
+  ldy #$0220
+  sty $4305           ; #$220 bytes to transfer
   lda #$01
-  sta $2105           ; Set Video mode 0, 8x8 tiles, 4 color BG1/BG2/BG3/BG4
+  sta $420B
 
-  lda #$04            ; Set BG1's Tile Map offset to $0400 (Word address)
-  sta $2107           ; And the Tile Map size to 32x32
+  lda #%10100000      ; 32x32 and 64x64 size sprites (we are using a 32x32)
+  sta $2101
 
-  stz $210B           ; Set BG1's Character VRAM offset to $0000 (word address)
-
-  lda #$01            ; Enable BG1
+  lda #%00010000      ; Enable Sprites
   sta $212C
 
-  lda #$FF
-  sta $210E
-  sta $210E
-
   lda #$0F
-  sta $2100           ; Turn on screen, full Brightness
+  sta $2100           ; Turn on screen, full brightness
 
   rts
+
+SpriteInit:
+  php
+
+  rep #$30        ; 16bit A/X/Y
+
+  ldx #$0000
+  lda #$01
+_offscreen:
+  sta $0000, X
+  inx
+  inx
+  inx
+  inx
+  cpx #$0200
+  bne _offscreen
+
+  lda #$5555
+_xmsb:
+  sta $0000, X
+  inx
+  inx
+  cpx #$0220
+  bne _xmsb
+
+  plp
+  rts
+
 
 .ends
 
@@ -72,5 +120,11 @@ SetupVideo:
 .section "CharacterData"
 
   .include "tiles.inc"
+
+SpritePalette:
+  .incbin "graphics/biker.clr"
+
+Sprite:
+  .incbin "graphics/biker.pic"
 
 .ends
