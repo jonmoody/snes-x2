@@ -1,130 +1,164 @@
-.include "Header.inc"
-.include "Snes_Init.asm"
+.INCLUDE "Header.inc"
+.INCLUDE "Snes_Init.asm"
+.INCLUDE "LoadGraphics.asm"
 
-.include "LoadGraphics.asm"
-
-.bank 0 slot 0
-.org 0
-.section "MainCode"
+.BANK 0 SLOT 0
+.ORG 0
+.SECTION "MainCode"
 
 Start:
   InitSNES
+
+  rep #$10
+  sep #$20
+
+  lda #%00001001
+  sta $2105
+
+  ; Blue Background
+  stz $2121
+  lda #$40
+  sta $2122
+  sta $2122
 
   LoadPalette SpritePalette, 128, 16
   LoadBlockToVRAM Sprite, $0000, $0800
 
   jsr SpriteInit
 
-  lda #(256/2 - 16)
-  sta $0000           ; Sprite X-Coordinate
-
-  lda #(224/2 - 16)   ; Sprite Y-Coordinate
+  ; Put sprite in the center of the screen
+  lda #($80-16)
+  sta $0000
+  lda #(224/2 - 16)
   sta $0001
 
-  lda #%01010100  ; clear X-MSB
+  stz $0002
+  lda #%01110000
+  sta $0003
+
+  lda #%01010100
   sta $0200
-
-
-  lda #$80
-  sta $2115
-
-  ldx #$0400
-  stx $2116
-  lda #$02
-  sta $2118
-
-  ldx #$0510
-  stx $2116
-  lda #$03
-  sta $2118
-
-  ldx #$0620
-  stx $2116
-  lda #$01
-  sta $2118
 
   jsr SetupVideo
 
-  ; Loop forever.
+  lda #$80
+  sta $4200       ; Enable NMI
+
 EternalTorment:
   jmp EternalTorment
 
-VBlank:
-  rti
-
-SetupVideo:
-  rep #$10
-  sep #$20            ; 8bit A, 16bit X/Y
-
-  ; DMA sprite data
-  stz $2102
-  stz $2103           ; Set OAM address to 0
-
-  ldy #$0400          ; Writes #$00 to $4300, #$04 to $4301
-  sty $4300           ; CPU -> PPU, auto inc, $2104 (OAM write)
-  stz $4302
-  stz $4303
-  lda #$7E
-  sta $4304           ; CPU address 7E:0000 - Work RAM
-  ldy #$0220
-  sty $4305           ; #$220 bytes to transfer
-  lda #$01
-  sta $420B
-
-  lda #%10100000      ; 32x32 and 64x64 size sprites (we are using a 32x32)
-  sta $2101
-
-  lda #%00010000      ; Enable Sprites
-  sta $212C
-
-  lda #$0F
-  sta $2100           ; Turn on screen, full brightness
-
-  rts
-
 SpriteInit:
-  php
+	php
 
-  rep #$30        ; 16bit A/X/Y
+	rep	#$30	;16bit mem/A, 16 bit X/Y
 
-  ldx #$0000
-  lda #$01
-_offscreen:
-  sta $0000, X
+	ldx #$0000
+  lda #$0001
+_setoffscr:
+  sta $0000,X
   inx
   inx
   inx
   inx
   cpx #$0200
-  bne _offscreen
+  bne _setoffscr
 
-  lda #$5555
-_xmsb:
-  sta $0000, X
-  inx
-  inx
-  cpx #$0220
-  bne _xmsb
+	ldx #$0000
+	lda #$5555
+_clr:
+	sta $0200, X		;initialize all sprites to be off the screen
+	inx
+	inx
+	cpx #$0020
+	bne _clr
+
+	plp
+
+	rts
+
+SetupVideo:
+  php
+
+  rep #$10
+  sep #$20
+
+  stz $2102
+  stz $2103
+
+  jsr TransferSpriteData
+
+	lda #%10100000
+  sta $2101
+
+  lda #%00010000    ; Enable BG1
+  sta $212C
+
+  lda #$0F
+  sta $2100         ; Turn on screen, full Brightness
 
   plp
+
   rts
 
+;============================================================================
+
+Gameloop:
+  rep #$30        ; A/mem=16 bits, X/Y=16 bits (to push all 16 bits)
+
+  ; Push registers
+  phb
+	pha
+	phx
+	phy
+	phd
+
+  sep #$20        ; A/mem=8 bit
+
+  jsr TransferSpriteData
+
+  lda $4210       ; Clear NMI flag
+  rep #$30        ; A/Mem=16 bits, X/Y=16 bits
+
+  ; Pull registers
+  pld
+	ply
+	plx
+	pla
+	plb
+
+  sep #$20
+
+  rti
+
+TransferSpriteData:
+  stz $2102		; set OAM address to 0
+  stz $2103
+
+  ldy #$0400
+  sty $4300		; CPU -> PPU, auto increment, write 1 reg, $2104 (OAM Write)
+  stz $4302
+  stz $4303		; source offset
+  ldy #$0220
+  sty $4305		; number of bytes to transfer
+  lda #$7E
+  sta $4304		; bank address = $7E  (work RAM)
+  lda #$01
+  sta $420B		;start DMA transfer
+
+  rts
 
 .ends
 
 ;============================================================================
 ; Character Data
 ;============================================================================
-.bank 1 slot 0
-.org 0
-.section "CharacterData"
-
-  .include "tiles.inc"
+.BANK 1 SLOT 0
+.ORG 0
+.SECTION "CharacterData"
+Sprite:
+    .INCBIN "graphics/biker.pic"
 
 SpritePalette:
-  .incbin "graphics/biker.clr"
+    .INCBIN "graphics/biker.clr"
 
-Sprite:
-  .incbin "graphics/biker.pic"
-
-.ends
+.ENDS
