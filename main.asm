@@ -6,11 +6,40 @@
 .ORG 0
 .SECTION "MainCode"
 
+.equ xValue $1000
+.equ yValue $1001
+
+.enum $1200
+  Joy1Raw     dw      ; Holder of RAW joypad data from register (from last frame)
+  Joy1Press   dw      ; Contains only pressed buttons (not held down)
+  Joy1Held    dw      ; Contains only buttons that are Held
+.ende
+
+; $4218
+.equ Button_A		$80
+.equ Button_X		$40
+.equ Button_L		$20
+.equ Button_R		$10
+; $4219
+.equ Button_B		$80
+.equ Button_Y		$40
+.equ Button_Select	$20
+.equ Button_Start	$10
+.equ Button_Up		$08
+.equ Button_Down	$04
+.equ Button_Left	$02
+.equ Button_Right	$01
+
 Start:
   InitSNES
 
   rep #$10
   sep #$20
+
+  lda #($80-16)
+  sta xValue
+  lda #(224/2 - 16)
+  sta yValue
 
   lda #%00001001
   sta $2105
@@ -27,9 +56,9 @@ Start:
   jsr SpriteInit
 
   ; Put sprite in the center of the screen
-  lda #($80-16)
+  lda xValue
   sta $0000
-  lda #(224/2 - 16)
+  lda yValue
   sta $0001
 
   stz $0002
@@ -41,7 +70,9 @@ Start:
 
   jsr SetupVideo
 
-  lda #$80
+  stz $4016
+
+  lda #$81
   sta $4200       ; Enable NMI
 
 EternalTorment:
@@ -114,6 +145,12 @@ Gameloop:
 
   sep #$20        ; A/mem=8 bit
 
+  jsr Joypad
+
+  jsr ProcessControllerInput
+
+  jsr MoveSprite
+
   jsr TransferSpriteData
 
   lda $4210       ; Clear NMI flag
@@ -130,6 +167,47 @@ Gameloop:
 
   rti
 
+ProcessControllerInput:
+
+ReadUp:
+  lda $4219
+  and #Button_Up
+  beq ReadDown
+
+  dec yValue
+
+ReadDown:
+  lda $4219
+  and #Button_Down
+  beq ReadLeft
+
+  inc yValue
+
+ReadLeft:
+  lda $4219
+  and #Button_Left
+  beq ReadRight
+
+  dec xValue
+
+ReadRight:
+  lda $4219
+  and #Button_Right
+  beq ProcessControllerInputEnd
+
+  inc xValue
+
+ProcessControllerInputEnd:
+  rts
+
+MoveSprite:
+  lda xValue
+  sta $0000
+  lda yValue
+  sta $0001
+
+  rts
+
 TransferSpriteData:
   stz $2102		; set OAM address to 0
   stz $2103
@@ -145,6 +223,44 @@ TransferSpriteData:
   lda #$01
   sta $420B		;start DMA transfer
 
+  rts
+
+Joypad:
+  lda $4212           ; auto-read joypad status
+  and #$01            ;
+  bne Joypad          ; read is done when 0
+
+  rep #$30            ; A/X/Y - 16 bit
+
+  ; Player 1
+  ldx Joy1Raw         ; load log of last frame's RAW read of $4218
+                      ; the log will be 0 the first time read of course..
+  lda $4218           ; Read current frame's RAW joypad data
+  sta Joy1Raw         ; save it for next frame.. (last frame log is still in X)
+  txa                 ; transfer last frame input from X -> A (it's still in X)
+  eor Joy1Raw         ; Xor last frame input with current frame input
+                      ; shows the changes in input
+                      ; buttons just pressed or just released become set.
+                      ; Held or unactive buttons are 0
+  and Joy1Raw         ; AND changes to current frame's input.
+                      ; this ends up leaving you with the only the buttons that
+                      ; are pressed.. It's MAGIC!
+  sta Joy1Press       ; Store just pressed buttons
+  txa                 ; Transfer last frame input from X -> A again
+  and Joy1Raw	        ; Find buttons that are still pressed (held)
+  sta Joy1Held        ; by storing only buttons that are pressed both frames
+
+  ; Joypads standard (ie not a mouse or superscope..) and connected?
+  sep #$20
+  ldx #$0000      ; we'll clear recorded input if pad is invalid
+
+  lda $4016       ; Pad 1 - now we read this (after we stored a 0 to it earlier)
+  bne _done     ; $4016 returns 0 if not connected, 1 if connected
+  stx Joy1Raw     ; otherwise clear all recorded input.. it's not valid..
+  stx Joy1Press
+  stx Joy1Held
+
+_done:
   rts
 
 .ends
