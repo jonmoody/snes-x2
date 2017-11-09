@@ -190,12 +190,18 @@ ReadLeft:
 
   dec xValue
 
+  lda #%01110000
+  sta $0003
+
 ReadRight:
   lda $4219
   and #Button_Right
   beq ProcessControllerInputEnd
 
   inc xValue
+
+  lda #%00110000
+  sta $0003
 
 ProcessControllerInputEnd:
   rts
