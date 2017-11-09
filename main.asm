@@ -6,8 +6,8 @@
 .ORG 0
 .SECTION "MainCode"
 
-.equ xValue $1000
-.equ yValue $1001
+.equ spriteXLocation $1000
+.equ spriteYLocation $1001
 
 .enum $1200
   Joy1Raw     dw      ; Holder of RAW joypad data from register (from last frame)
@@ -37,9 +37,9 @@ Start:
   sep #$20
 
   lda #($80-16)
-  sta xValue
+  sta spriteXLocation
   lda #(224/2 - 16)
-  sta yValue
+  sta spriteYLocation
 
   lda #%00001001
   sta $2105
@@ -56,9 +56,9 @@ Start:
   jsr SpriteInit
 
   ; Put sprite in the center of the screen
-  lda xValue
+  lda spriteXLocation
   sta $0000
-  lda yValue
+  lda spriteYLocation
   sta $0001
 
   stz $0002
@@ -174,21 +174,21 @@ ReadUp:
   and #Button_Up
   beq ReadDown
 
-  dec yValue
+  dec spriteYLocation
 
 ReadDown:
   lda $4219
   and #Button_Down
   beq ReadLeft
 
-  inc yValue
+  inc spriteYLocation
 
 ReadLeft:
   lda $4219
   and #Button_Left
   beq ReadRight
 
-  dec xValue
+  dec spriteXLocation
 
   lda #%01110000
   sta $0003
@@ -198,7 +198,7 @@ ReadRight:
   and #Button_Right
   beq ProcessControllerInputEnd
 
-  inc xValue
+  inc spriteXLocation
 
   lda #%00110000
   sta $0003
@@ -207,9 +207,9 @@ ProcessControllerInputEnd:
   rts
 
 MoveSprite:
-  lda xValue
+  lda spriteXLocation
   sta $0000
-  lda yValue
+  lda spriteYLocation
   sta $0001
 
   rts
