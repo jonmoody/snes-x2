@@ -53,6 +53,8 @@ Start:
   LoadPalette SpritePalette, 128, 16
   LoadBlockToVRAM Sprite, $0000, $0800
 
+  LoadPalette SpritePalette, 0, 16
+
   jsr SpriteInit
 
   ; Put sprite in the center of the screen
@@ -67,6 +69,12 @@ Start:
 
   lda #%01010100
   sta $0200
+
+  ; This modifies the background tiles
+  ; ldx #$0400
+  ; stx $2116
+  ; lda #$00
+  ; sta $2118
 
   jsr SetupVideo
 
@@ -116,13 +124,22 @@ SetupVideo:
   stz $2102
   stz $2103
 
+  lda #$04
+  sta $2107
+
+  stz $210B
+
   jsr TransferSpriteData
 
 	lda #%10100000
   sta $2101
 
-  lda #%00010000    ; Enable BG1
+  lda #%00010001    ; Enable BG1
   sta $212C
+
+  lda #$FF
+  sta $210E
+  sta $210E
 
   lda #$0F
   sta $2100         ; Turn on screen, full Brightness
